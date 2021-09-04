@@ -11,9 +11,10 @@ open Shared
 
 
 type Model = {
-    Todos: Todo list;
-    Input: string;
-    NestBoxes: Map<Box, BoxStatus>
+    Boxes: Box list
+    // Todos: Todo list;
+    // Input: string;
+    // NestBoxes: Map<Box, BoxStatus>
     AdultsInput: int
     EggsInput: int
     ChicksInput: int
@@ -21,10 +22,11 @@ type Model = {
 }
 
 type Msg =
-    | GotTodos of Todo list
-    | SetInput of string
-    | AddTodo
-    | AddedTodo of Todo
+    // | GotTodos of Todo list
+    | GotBoxes of Box list
+    // | SetInput of string
+    // | AddTodo
+    // | AddedTodo of Todo
     | BoxClick of int
     | SetAdultsInput of int
     | SetEggsInput of int
@@ -37,51 +39,65 @@ Leaflet.icon?Default?imagePath <- "//cdnjs.cloudflare.com/ajax/libs/leaflet/1.6.
 type RLMarker = { Info: string; Position: LatLngExpression}
 
 
-let todosApi =
+// let todosApi =
+//     Remoting.createApi ()
+//     |> Remoting.withRouteBuilder Route.builder
+//     |> Remoting.buildProxy<ITodosApi>
+
+let boxesApi =
     Remoting.createApi ()
     |> Remoting.withRouteBuilder Route.builder
-    |> Remoting.buildProxy<ITodosApi>
+    |> Remoting.buildProxy<IBoxesApi>
 
 let init () : Model * Cmd<Msg> =
     // some dummy locations
-    let boxes = [   { PenguinBox = { Number = 1; Location = {Lat = -41.3492; Lng = 174.7729} }; PenguinStatus = { Adults = 0; Eggs = 0; Chicks = 0;} }
-                    { PenguinBox = { Number = 2; Location = {Lat = -41.3495; Lng = 174.7725} }; PenguinStatus = {Adults = 0; Eggs = 0; Chicks = 0;} }
-                    { PenguinBox = { Number = 3; Location = {Lat = -41.3495; Lng = 174.7732} }; PenguinStatus = {Adults = 0; Eggs = 0; Chicks = 0;} }
-                    { PenguinBox = { Number = 4; Location = {Lat = -41.3493; Lng = 174.7738} }; PenguinStatus = {Adults = 0; Eggs = 0; Chicks = 0;} }
-                    { PenguinBox = { Number = 5; Location = {Lat = -41.3491; Lng = 174.7739} }; PenguinStatus = {Adults = 0; Eggs = 0; Chicks = 0;} } ]
-                |> List.map (fun i -> i.PenguinBox, i)
-                |> Map.ofList
+    // let boxes = [   { PenguinBox = { Number = 1; Location = {Lat = -41.3492; Lng = 174.7729} }; PenguinStatus = { Adults = 0; Eggs = 0; Chicks = 0;} }
+    //                 { PenguinBox = { Number = 2; Location = {Lat = -41.3495; Lng = 174.7725} }; PenguinStatus = {Adults = 0; Eggs = 0; Chicks = 0;} }
+    //                 { PenguinBox = { Number = 3; Location = {Lat = -41.3495; Lng = 174.7732} }; PenguinStatus = {Adults = 0; Eggs = 0; Chicks = 0;} }
+    //                 { PenguinBox = { Number = 4; Location = {Lat = -41.3493; Lng = 174.7738} }; PenguinStatus = {Adults = 0; Eggs = 0; Chicks = 0;} }
+    //                 { PenguinBox = { Number = 5; Location = {Lat = -41.3491; Lng = 174.7739} }; PenguinStatus = {Adults = 0; Eggs = 0; Chicks = 0;} } ]
+    //             |> List.map (fun i -> i.PenguinBox, i)
+    //             |> Map.ofList
 
+    printfn "I'm in index.init"
     let model = {
-        Todos = [];
-        Input = ""
-        NestBoxes = boxes
+        Boxes = []
+        // Todos = [];
+        // Input = ""
+        // NestBoxes = Map.empty
         AdultsInput = 0
         EggsInput = 0
         ChicksInput = 0
         DisplayPopover = false
     }
 
-    let cmd =
-        Cmd.OfAsync.perform todosApi.getTodos () GotTodos
+    let cmd = Cmd.OfAsync.perform boxesApi.getBoxes () GotBoxes
+    printfn "Am i here - yes, model: %A" model
+    printfn "Cmd at this point: %A" cmd
+    // let cmd = Cmd.OfAsync.perform todosApi.getTodos () GotTodos
 
     model, cmd
 
 let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
+    printfn "In update with model: %A" model
+    printfn "In upate with msg: %A" msg
     match msg with
-    | GotTodos todos -> { model with Todos = todos }, Cmd.none
-    | SetInput value -> { model with Input = value }, Cmd.none
-    | AddTodo ->
-        let todo = Todo.create model.Input
+    | GotBoxes boxes ->
+        printfn "Received boxes: %A" boxes
+        { model with Boxes = boxes }, Cmd.none
+    // // | GotTodos todos -> { model with Todos = todos }, Cmd.none
+    // // | SetInput value -> { model with Input = value }, Cmd.none
+    // // | AddTodo ->
+    // //     let todo = Todo.create model.Input
 
-        let cmd =
-            Cmd.OfAsync.perform todosApi.addTodo todo AddedTodo
+    //     let cmd =
+    //         Cmd.OfAsync.perform todosApi.addTodo todo AddedTodo
 
-        { model with Input = "" }, cmd
-    | AddedTodo todo ->
-        { model with
-              Todos = model.Todos @ [ todo ] },
-        Cmd.none
+    //     { model with Input = "" }, cmd
+    // | AddedTodo todo ->
+    //     { model with
+    //           Todos = model.Todos @ [ todo ] },
+    //     Cmd.none
 
     | BoxClick i-> model, Cmd.none
     | SetAdultsInput i -> { model with AdultsInput = i }, Cmd.none
@@ -162,9 +178,9 @@ let tile =
 
 let mapBoxes (state: Model) (dispatch: Msg -> unit) =
   let markers =
-    [for KeyValue(k,v) in state.NestBoxes do
-      buildMarker { Info = (string)k.Number; Position = Fable.Core.U3.Case3(v.PenguinBox.Location.Lat, v.PenguinBox.Location.Lng) } state dispatch ]
-    |> List.tail
+    state.Boxes
+    |> List.map (fun b -> buildMarker { Info = (string)b.Id; Position = Fable.Core.U3.Case3(b.Location.Lat, b.Location.Lng) } state dispatch )
+    // |> List.tail
 
   tile :: markers
 
@@ -184,33 +200,33 @@ let navBrand =
 
 let containerBox (model: Model) (dispatch: Msg -> unit) =
     Bulma.box [
-        Bulma.content [
-            Html.ol [
-                for todo in model.Todos do
-                    Html.li [ prop.text todo.Description ]
-            ]
-        ]
+        // Bulma.content [
+        //     Html.ol [
+        //         for todo in model.Todos do
+        //             Html.li [ prop.text todo.Description ]
+        //     ]
+        // ]
         Bulma.field.div [
             field.isGrouped
             prop.children [
-                Bulma.control.p [
-                    prop.className  "is-expanded"
-                    prop.children [
-                        Bulma.input.text [
-                            prop.value model.Input
-                            prop.placeholder "What needs to be done?"
-                            prop.onChange (SetInput >> dispatch)
-                        ]
-                    ]
-                ]
-                Bulma.control.p [
-                    Bulma.button.a [
-                        color.isPrimary
-                        prop.disabled (Todo.isValid model.Input |> not)
-                        prop.onClick (fun _ -> dispatch AddTodo)
-                        prop.text "Add"
-                    ]
-                ]
+            //     Bulma.control.p [
+            //         prop.className  "is-expanded"
+            //         prop.children [
+            //             Bulma.input.text [
+            //                 prop.value model.Input
+            //                 prop.placeholder "What needs to be done?"
+            //                 prop.onChange (SetInput >> dispatch)
+            //             ]
+            //         ]
+            //     ]
+            //     Bulma.control.p [
+            //         Bulma.button.a [
+            //             color.isPrimary
+            //             prop.disabled (Todo.isValid model.Input |> not)
+            //             prop.onClick (fun _ -> dispatch AddTodo)
+            //             prop.text "Add"
+            //         ]
+            //     ]
             ]
         ]
     ]
