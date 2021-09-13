@@ -1,5 +1,6 @@
 module Index
 
+open System
 open Elmish
 open Fable.Remoting.Client
 open Feliz
@@ -14,7 +15,7 @@ type Model = {
     Boxes: Box list
     // Todos: Todo list;
     // Input: string;
-    // NestBoxes: Map<Box, BoxStatus>
+    AllBoxStatuses: BoxStatuses list //Map<int, BoxStatus>
     AdultsInput: int
     EggsInput: int
     ChicksInput: int
@@ -24,6 +25,8 @@ type Model = {
 type Msg =
     // | GotTodos of Todo list
     | GotBoxes of Box list
+    | GotBoxStatuses of BoxStatuses
+    | GotAllBoxStatuses of BoxStatuses list
     // | SetInput of string
     // | AddTodo
     // | AddedTodo of Todo
@@ -64,7 +67,8 @@ let init () : Model * Cmd<Msg> =
         Boxes = []
         // Todos = [];
         // Input = ""
-        // NestBoxes = Map.empty
+        AllBoxStatuses = [] // Map.empty
+        // BoxStatuses =
         AdultsInput = 0
         EggsInput = 0
         ChicksInput = 0
@@ -86,7 +90,7 @@ let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
         printfn "Received boxes: %A" boxes
         { model with Boxes = boxes }, Cmd.none
     // // | GotTodos todos -> { model with Todos = todos }, Cmd.none
-    // // | SetInput value -> { model with Input = value }, Cmd.none
+    // | SetInput value -> { model with Input = value }, Cmd.none
     // // | AddTodo ->
     // //     let todo = Todo.create model.Input
 
@@ -103,7 +107,18 @@ let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
     | SetAdultsInput i -> { model with AdultsInput = i }, Cmd.none
     | SetEggsInput i -> { model with EggsInput = i }, Cmd.none
     | SetChicksInput i -> { model with ChicksInput = i }, Cmd.none
-    | SetSubmit -> model, Cmd.none
+    | SetSubmit ->
+        let status = Status.create model.AdultsInput model.EggsInput model.ChicksInput DateTime.Now
+        let cmd =
+            Cmd.OfAsync.perform boxesApi.getBoxStatuses 1 GotBoxStatuses
+        printfn "Just constructed cmd for SetSubmit"
+        model, cmd
+
+    | GotAllBoxStatuses abs -> {model with AllBoxStatuses = abs}, Cmd.none
+    | GotBoxStatuses bs ->
+        printfn "GotBoxStatuses has come in with %A" bs
+        model, Cmd.none
+
 
 let LINZBasemap x y z dpr =
     // sprintf "https://stamen-tiles.a.ssl.fastly.net/terrain/%A/%A/%A.png" z x y
@@ -161,7 +176,8 @@ let buildMarker (marker: RLMarker) (model: Model) (dispatch: Msg -> unit) : Reac
               ]
               Bulma.button.button [
                 prop.text "Submit"
-                prop.onClick (fun _ -> dispatch SetSubmit)
+                prop.href ""
+                prop.onClick (fun e -> e.preventDefault(); dispatch SetSubmit)
               ]
             ]
 

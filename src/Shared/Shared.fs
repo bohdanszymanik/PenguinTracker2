@@ -17,12 +17,13 @@ module Box =
           Location = location }
 
 
+[<CLIMutable>]
 type Status = {
     Adults: int
     Eggs: int
     Chicks: int
+    Date: DateTime
  }
-
 module Status =
     let adultsValid (adults: int) = (
         match adults with
@@ -30,13 +31,33 @@ module Status =
         | _ -> false
     )
 
-    let create (adults:int) (eggs:int) (chicks:int) = {
+    let create (adults:int) (eggs:int) (chicks:int) (date:DateTime) = {
         Adults = adults
         Eggs = eggs
         Chicks = chicks
+        Date = date
     }
 
-type BoxStatus = {PenguinBox: Box; PenguinStatus: Status}
+// we'll model the box status recordings as
+// a list of status records against a box id
+[<CLIMutable>]
+type BoxStatuses = {Id:int; Status: Status list}
+module BoxStatuses =
+    let create (id:int) = {
+        Id = id
+        Status = []
+    }
+
+    let add (status: Status) (priorBoxStatuses: BoxStatuses) = {
+        Id = priorBoxStatuses.Id
+        Status = {
+            Adults = status.Adults
+            Eggs = status.Eggs
+            Chicks = status.Chicks
+            Date = status.Date
+        } :: priorBoxStatuses.Status
+    }
+
 
 // [<CLIMutable>]
 // type Todo = { Id: Guid; Description: string }
@@ -60,4 +81,8 @@ module Route =
 
 type IBoxesApi =
     { getBoxes: unit -> Async<Box list>
-      addBox: Box -> Async<Box> }
+      addBox: Box -> Async<Box>
+      getAllBoxStatuses: unit -> Async<BoxStatuses list>
+      getBoxStatuses: int -> Async<BoxStatuses>
+      addBoxStatus: BoxStatuses -> Async<BoxStatuses>
+      }

@@ -6,6 +6,7 @@ open Saturn
 open Shared
 open LiteDB.FSharp
 open LiteDB
+open LiteDB.FSharp.Linq
 
 type Storage () =
     let database =
@@ -14,6 +15,7 @@ type Storage () =
         new LiteDatabase (connStr, mapper)
 
     let boxes = database.GetCollection<Box> "boxes"
+    let allBoxStatuses = database.GetCollection<BoxStatuses> "boxStatuses"
     // let todos = database.GetCollection<Todo> "todos"
 
     /// Retrieves all boxes
@@ -30,7 +32,19 @@ type Storage () =
         else
             Error "Invalid box"
 
-    member __.AddNestBoxStatus(bs: BoxStatus) = ()
+    member __.AddBoxStatus(boxStatuses: BoxStatuses) =
+        allBoxStatuses.Insert boxStatuses |> ignore
+        Ok()
+
+    member __.GetAllBoxStatuses() =
+        printfn "Length of BoxStatus collection %A" (allBoxStatuses.LongCount())
+        allBoxStatuses.FindAll () |> List.ofSeq
+
+    /// Retrieve Box Statuses
+    member __.GetBoxStatuses(id:int) =
+        let retrievedBoxStatuses = allBoxStatuses.FindById(BsonValue(id))
+        printfn "Caller is retrieving box statuses: %A" retrievedBoxStatuses
+        retrievedBoxStatuses
 
     // /// Retrieves all todo items.
     // member _.GetTodos () =
@@ -59,11 +73,20 @@ type Storage () =
 let storage = Storage()
 
 if storage.GetBoxes() |> Seq.isEmpty then
+    printfn "GetBoxes returns empty so better make some"
     storage.AddBox(Box.create 1 {Lat = -41.3492; Lng = 174.7729}) |> ignore
     storage.AddBox(Box.create 2 {Lat = -41.3495; Lng = 174.7725}) |> ignore
     storage.AddBox(Box.create 3 {Lat = -41.3495; Lng = 174.7732}) |> ignore
     storage.AddBox(Box.create 4 {Lat = -41.3493; Lng = 174.7738}) |> ignore
     storage.AddBox(Box.create 5 {Lat = -41.3491; Lng = 174.7739}) |> ignore
+
+if storage.GetAllBoxStatuses() |> Seq.isEmpty then
+    printfn "GetBoxStatuses returns empty so better make some"
+    storage.AddBoxStatus(BoxStatuses.create 1 ) |> ignore
+    storage.AddBoxStatus(BoxStatuses.create 2 ) |> ignore
+    storage.AddBoxStatus(BoxStatuses.create 3 ) |> ignore
+    storage.AddBoxStatus(BoxStatuses.create 4 ) |> ignore
+    storage.AddBoxStatus(BoxStatuses.create 5 ) |> ignore
 
 // if storage.GetTodos() |> Seq.isEmpty then
 //     storage.AddTodo(Todo.create "Create new SAFE project") |> ignore
@@ -86,6 +109,19 @@ let boxesApi =
             async {
                 match storage.AddBox box with
                 | Ok () -> return box
+                | Error e -> return failwith e
+            }
+      getAllBoxStatuses =
+        fun () -> async { return storage.GetAllBoxStatuses() }
+      getBoxStatuses =
+        fun (i:int) -> async { return storage.GetBoxStatuses(i) }
+    //   getBoxStatus =
+    //     fun n -> async { return storage.GetBoxStatus(n) }
+      addBoxStatus =
+        fun boxStatus ->
+            async {
+                match storage.AddBoxStatus boxStatus with
+                | Ok () -> return boxStatus
                 | Error e -> return failwith e
             }
     }
