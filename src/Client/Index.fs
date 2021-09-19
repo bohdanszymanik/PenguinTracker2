@@ -15,7 +15,8 @@ type Model = {
     Boxes: Box list
     // Todos: Todo list;
     // Input: string;
-    AllBoxStatuses: BoxStatuses list //Map<int, BoxStatus>
+    // AllBoxStatuses: BoxStatuses list
+    AllBoxStatuses: Map<int, Status list>
     AdultsInput: int
     EggsInput: int
     ChicksInput: int
@@ -26,6 +27,7 @@ type Msg =
     // | GotTodos of Todo list
     | GotBoxes of Box list
     | GotBoxStatuses of BoxStatuses
+    | GetAllBoxStatuses
     | GotAllBoxStatuses of BoxStatuses list
     // | SetInput of string
     // | AddTodo
@@ -34,7 +36,7 @@ type Msg =
     | SetAdultsInput of int
     | SetEggsInput of int
     | SetChicksInput of int
-    | SetSubmit
+    | SetSubmit of int  // int marker for nest box
 
 module RL = ReactLeaflet
 importAll "../../node_modules/leaflet/dist/leaflet.css"
@@ -53,21 +55,12 @@ let boxesApi =
     |> Remoting.buildProxy<IBoxesApi>
 
 let init () : Model * Cmd<Msg> =
-    // some dummy locations
-    // let boxes = [   { PenguinBox = { Number = 1; Location = {Lat = -41.3492; Lng = 174.7729} }; PenguinStatus = { Adults = 0; Eggs = 0; Chicks = 0;} }
-    //                 { PenguinBox = { Number = 2; Location = {Lat = -41.3495; Lng = 174.7725} }; PenguinStatus = {Adults = 0; Eggs = 0; Chicks = 0;} }
-    //                 { PenguinBox = { Number = 3; Location = {Lat = -41.3495; Lng = 174.7732} }; PenguinStatus = {Adults = 0; Eggs = 0; Chicks = 0;} }
-    //                 { PenguinBox = { Number = 4; Location = {Lat = -41.3493; Lng = 174.7738} }; PenguinStatus = {Adults = 0; Eggs = 0; Chicks = 0;} }
-    //                 { PenguinBox = { Number = 5; Location = {Lat = -41.3491; Lng = 174.7739} }; PenguinStatus = {Adults = 0; Eggs = 0; Chicks = 0;} } ]
-    //             |> List.map (fun i -> i.PenguinBox, i)
-    //             |> Map.ofList
-
     printfn "I'm in index.init"
     let model = {
         Boxes = []
         // Todos = [];
         // Input = ""
-        AllBoxStatuses = [] // Map.empty
+        AllBoxStatuses = Map.empty
         // BoxStatuses =
         AdultsInput = 0
         EggsInput = 0
@@ -79,7 +72,6 @@ let init () : Model * Cmd<Msg> =
     printfn "Am i here - yes, model: %A" model
     printfn "Cmd at this point: %A" cmd
     // let cmd = Cmd.OfAsync.perform todosApi.getTodos () GotTodos
-
     model, cmd
 
 let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
@@ -87,8 +79,15 @@ let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
     printfn "In upate with msg: %A" msg
     match msg with
     | GotBoxes boxes ->
-        printfn "Received boxes: %A" boxes
-        { model with Boxes = boxes }, Cmd.none
+        printfn "In GotBoxes, received boxes: %A" boxes
+        // now for every box.. we want all the box statuses
+
+        let cmd = Cmd.OfAsync.perform boxesApi.getAllBoxStatuses () GotAllBoxStatuses
+        printfn "Am i here - yes, model: %A" model
+        printfn "Cmd at this point: %A" cmd
+
+        { model with Boxes = boxes }, cmd
+
     // // | GotTodos todos -> { model with Todos = todos }, Cmd.none
     // | SetInput value -> { model with Input = value }, Cmd.none
     // // | AddTodo ->
@@ -107,14 +106,36 @@ let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
     | SetAdultsInput i -> { model with AdultsInput = i }, Cmd.none
     | SetEggsInput i -> { model with EggsInput = i }, Cmd.none
     | SetChicksInput i -> { model with ChicksInput = i }, Cmd.none
-    | SetSubmit ->
+    | SetSubmit i ->
+        printfn "In SetSubmit with arg %A" i
         let status = Status.create model.AdultsInput model.EggsInput model.ChicksInput DateTime.Now
+        printfn "In SetSubmit and created status %A" status
+        printfn "Model AllBoxStatuses %A" model.AllBoxStatuses
+        printfn "AllBoxStatuses length %A" model.AllBoxStatuses.Count
+        printfn "Prepending status to %A" model.AllBoxStatuses.[i]
+        let boxStatuses' = status :: model.AllBoxStatuses.[i]
+        let boxStatuses = {Id = i; StatusList = boxStatuses'}
+        printfn "SetSubmit created status %A" status
         let cmd =
-            Cmd.OfAsync.perform boxesApi.getBoxStatuses 1 GotBoxStatuses
+            Cmd.OfAsync.perform boxesApi.addBoxStatuses boxStatuses (fun _ -> GetAllBoxStatuses)
         printfn "Just constructed cmd for SetSubmit"
-        model, cmd
+        {model with AdultsInput = 0; EggsInput = 0; ChicksInput = 0}, cmd
 
-    | GotAllBoxStatuses abs -> {model with AllBoxStatuses = abs}, Cmd.none
+    // | AddBoxStatus s ->
+
+    | GetAllBoxStatuses ->
+        model, Cmd.OfAsync.perform boxesApi.getAllBoxStatuses () GotAllBoxStatuses
+
+    | GotAllBoxStatuses abs ->
+        printfn "In GotAllBoxStatuses with list of BoxStatuses %A" abs
+        // in the storage we have a list of BoxStatuses
+        // but in the ui it's easier to deal with a Map<int, BoxStatuses list> so we need to transform
+        let allBoxStatuses' = abs |> List.map (fun i ->  printfn "i %A" i; i.Id, i.StatusList)
+        printfn "allBoxStatuses' %A" allBoxStatuses'
+        let allBoxStatuses = allBoxStatuses' |> Map.ofList
+        printfn "allBoxStatuses %A" allBoxStatuses
+        {model with AllBoxStatuses = allBoxStatuses}, Cmd.none
+
     | GotBoxStatuses bs ->
         printfn "GotBoxStatuses has come in with %A" bs
         model, Cmd.none
@@ -133,6 +154,7 @@ let appTitle =
   ]
 
 let buildMarker (marker: RLMarker) (model: Model) (dispatch: Msg -> unit) : ReactElement =
+    printfn "In buildMarker now with position %A and Info %A" marker.Position marker.Info
     RL.marker
       [
         RL.MarkerProps.Position marker.Position;
@@ -143,6 +165,7 @@ let buildMarker (marker: RLMarker) (model: Model) (dispatch: Msg -> unit) : Reac
           [ RL.PopupProps.Key marker.Info; RL.PopupProps.MaxWidth 200.; RL.PopupProps.MinWidth 200.; RL.PopupProps.CloseButton true ]
           [ Bulma.field.div
               [ Html.p [ !!marker.Info ] ]
+            Bulma.label (sprintf "Nest box %s" marker.Info)
             Html.form [
               Bulma.field.div [
                 Bulma.label "Adults"
@@ -177,7 +200,7 @@ let buildMarker (marker: RLMarker) (model: Model) (dispatch: Msg -> unit) : Reac
               Bulma.button.button [
                 prop.text "Submit"
                 prop.href ""
-                prop.onClick (fun e -> e.preventDefault(); dispatch SetSubmit)
+                prop.onClick (fun e -> e.preventDefault(); dispatch (SetSubmit ((int)marker.Info)) )
               ]
             ]
 
@@ -193,12 +216,13 @@ let tile =
     []
 
 let mapBoxes (state: Model) (dispatch: Msg -> unit) =
-  let markers =
-    state.Boxes
-    |> List.map (fun b -> buildMarker { Info = (string)b.Id; Position = Fable.Core.U3.Case3(b.Location.Lat, b.Location.Lng) } state dispatch )
-    // |> List.tail
+    printfn "In mapBoxes now"
+    let markers =
+        state.Boxes
+        |> List.map (fun b -> buildMarker { Info = (string)b.Id; Position = Fable.Core.U3.Case3(b.Location.Lat, b.Location.Lng) } state dispatch )
+        // |> List.tail
 
-  tile :: markers
+    tile :: markers
 
 let navBrand =
     Bulma.navbarBrand.div [
@@ -248,6 +272,7 @@ let containerBox (model: Model) (dispatch: Msg -> unit) =
     ]
 
 let view (model: Model) (dispatch: Msg -> unit) =
+    printfn "I'm in the view now"
     Bulma.hero [
         hero.isFullHeight
         // color.isPrimary
@@ -270,7 +295,7 @@ let view (model: Model) (dispatch: Msg -> unit) =
                         prop.children [
                             Bulma.title [
                                 text.hasTextCentered
-                                prop.text "bohszyaug2021test1"
+                                prop.text "Nest box data logger"
                             ]
                             // containerBox model dispatch
 

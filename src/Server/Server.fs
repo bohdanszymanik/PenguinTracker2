@@ -15,7 +15,7 @@ type Storage () =
         new LiteDatabase (connStr, mapper)
 
     let boxes = database.GetCollection<Box> "boxes"
-    let allBoxStatuses = database.GetCollection<BoxStatuses> "boxStatuses"
+    let allBoxStatuses = database.GetCollection<BoxStatuses> "allBoxStatuses" // seems like the string name needs to match the left hand side?
     // let todos = database.GetCollection<Todo> "todos"
 
     /// Retrieves all boxes
@@ -32,13 +32,23 @@ type Storage () =
         else
             Error "Invalid box"
 
-    member __.AddBoxStatus(boxStatuses: BoxStatuses) =
+// todo - should we have another method to just add a single new box status item?
+// what would be the signature? int,status?
+    member __.AddBoxStatuses(boxStatuses: BoxStatuses) =
         allBoxStatuses.Insert boxStatuses |> ignore
         Ok()
 
+    member __.UpdateBoxStatuses(boxStatuses: BoxStatuses) =
+        allBoxStatuses.Update(boxStatuses) |> ignore
+        Ok()
+
     member __.GetAllBoxStatuses() =
-        printfn "Length of BoxStatus collection %A" (allBoxStatuses.LongCount())
-        allBoxStatuses.FindAll () |> List.ofSeq
+        printfn "In GetAllBoxStatuses()"
+        printfn "what does it say about alBoxStatuses %A" allBoxStatuses
+        printfn "Length of BoxStatus collection (all boxes, and their status list) %A" (allBoxStatuses.LongCount())
+        let t = allBoxStatuses.FindAll()
+        printfn "t = %A" t
+        t |> List.ofSeq
 
     /// Retrieve Box Statuses
     member __.GetBoxStatuses(id:int) =
@@ -71,6 +81,7 @@ type Storage () =
     //         Error "Invalid todo"
 
 let storage = Storage()
+printfn "Boxes count %A" (storage.GetBoxes().Length)
 
 if storage.GetBoxes() |> Seq.isEmpty then
     printfn "GetBoxes returns empty so better make some"
@@ -82,11 +93,11 @@ if storage.GetBoxes() |> Seq.isEmpty then
 
 if storage.GetAllBoxStatuses() |> Seq.isEmpty then
     printfn "GetBoxStatuses returns empty so better make some"
-    storage.AddBoxStatus(BoxStatuses.create 1 ) |> ignore
-    storage.AddBoxStatus(BoxStatuses.create 2 ) |> ignore
-    storage.AddBoxStatus(BoxStatuses.create 3 ) |> ignore
-    storage.AddBoxStatus(BoxStatuses.create 4 ) |> ignore
-    storage.AddBoxStatus(BoxStatuses.create 5 ) |> ignore
+    storage.AddBoxStatuses(BoxStatuses.create 1 ) |> ignore
+    storage.AddBoxStatuses(BoxStatuses.create 2 ) |> ignore
+    storage.AddBoxStatuses(BoxStatuses.create 3 ) |> ignore
+    storage.AddBoxStatuses(BoxStatuses.create 4 ) |> ignore
+    storage.AddBoxStatuses(BoxStatuses.create 5 ) |> ignore
 
 // if storage.GetTodos() |> Seq.isEmpty then
 //     storage.AddTodo(Todo.create "Create new SAFE project") |> ignore
@@ -102,28 +113,41 @@ if storage.GetAllBoxStatuses() |> Seq.isEmpty then
 // storage.AddTodo(Todo.create "Ship it !!!")
 // |> ignore
 
-let boxesApi =
-    { getBoxes = fun() -> async { return storage.GetBoxes() }
-      addBox =
+let boxesApi = {
+    getBoxes = fun() -> printfn "In boxesApi getBoxes"; async { return storage.GetBoxes() }
+
+    addBox =
         fun box ->
             async {
                 match storage.AddBox box with
                 | Ok () -> return box
                 | Error e -> return failwith e
             }
-      getAllBoxStatuses =
+
+    getAllBoxStatuses =
         fun () -> async { return storage.GetAllBoxStatuses() }
-      getBoxStatuses =
+
+    getBoxStatuses =
         fun (i:int) -> async { return storage.GetBoxStatuses(i) }
     //   getBoxStatus =
     //     fun n -> async { return storage.GetBoxStatus(n) }
-      addBoxStatus =
+
+    addBoxStatuses =
         fun boxStatus ->
             async {
-                match storage.AddBoxStatus boxStatus with
+                match storage.AddBoxStatuses boxStatus with
                 | Ok () -> return boxStatus
                 | Error e -> return failwith e
             }
+    updateBoxStatuses =
+        fun boxStatuses ->
+            async {
+                match storage.UpdateBoxStatuses boxStatuses with
+                | Ok () -> return boxStatuses
+                | Error e -> return failwith e
+            }
+    dummy =
+        fun () -> async { return "dummy"}
     }
 
 // let todosApi =

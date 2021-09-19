@@ -41,21 +41,21 @@ module Status =
 // we'll model the box status recordings as
 // a list of status records against a box id
 [<CLIMutable>]
-type BoxStatuses = {Id:int; Status: Status list}
+type BoxStatuses = {Id:int; StatusList: Status list}
 module BoxStatuses =
     let create (id:int) = {
         Id = id
-        Status = []
+        StatusList = []
     }
 
     let add (status: Status) (priorBoxStatuses: BoxStatuses) = {
         Id = priorBoxStatuses.Id
-        Status = {
+        StatusList = {
             Adults = status.Adults
             Eggs = status.Eggs
             Chicks = status.Chicks
             Date = status.Date
-        } :: priorBoxStatuses.Status
+        } :: priorBoxStatuses.StatusList
     }
 
 
@@ -80,9 +80,12 @@ module Route =
 //       addTodo: Todo -> Async<Todo> }
 
 type IBoxesApi =
-    { getBoxes: unit -> Async<Box list>
-      addBox: Box -> Async<Box>
-      getAllBoxStatuses: unit -> Async<BoxStatuses list>
-      getBoxStatuses: int -> Async<BoxStatuses>
-      addBoxStatus: BoxStatuses -> Async<BoxStatuses>
+    {
+        getBoxes: unit -> Async<Box list>
+        addBox: Box -> Async<Box>
+        getAllBoxStatuses: unit -> Async<BoxStatuses list>
+        getBoxStatuses: int -> Async<BoxStatuses>
+        addBoxStatuses: BoxStatuses -> Async<BoxStatuses>
+        updateBoxStatuses: BoxStatuses -> Async<BoxStatuses>
+        dummy: unit -> Async<string>
       }
