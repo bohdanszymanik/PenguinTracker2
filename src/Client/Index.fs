@@ -117,7 +117,7 @@ let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
         let boxStatuses = {Id = i; StatusList = boxStatuses'}
         printfn "SetSubmit created status %A" status
         let cmd =
-            Cmd.OfAsync.perform boxesApi.addBoxStatuses boxStatuses (fun _ -> GetAllBoxStatuses)
+            Cmd.OfAsync.perform boxesApi.addBoxStatuses boxStatuses (fun boxStatuses -> GetAllBoxStatuses)
         printfn "Just constructed cmd for SetSubmit"
         {model with AdultsInput = 0; EggsInput = 0; ChicksInput = 0}, cmd
 

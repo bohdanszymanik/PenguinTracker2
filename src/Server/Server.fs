@@ -16,6 +16,8 @@ type Storage () =
 
     let boxes = database.GetCollection<Box> "boxes"
     let allBoxStatuses = database.GetCollection<BoxStatuses> "allBoxStatuses" // seems like the string name needs to match the left hand side?
+
+
     // let todos = database.GetCollection<Todo> "todos"
 
     /// Retrieves all boxes
@@ -32,10 +34,13 @@ type Storage () =
         else
             Error "Invalid box"
 
-// todo - should we have another method to just add a single new box status item?
-// what would be the signature? int,status?
+// todo - OK, I understand what's happened - we have 5 boxStatuses in the collection already
+// so we need to check if one exists and if it doesn't add
+// otherwise update with the statuslist extended with a new item
     member __.AddBoxStatuses(boxStatuses: BoxStatuses) =
-        allBoxStatuses.Insert boxStatuses |> ignore
+        printfn "In Storage.AddBoxStatuses - about to insert boxStatuses %A to allBoxStatuses %A" boxStatuses allBoxStatuses
+        printfn "allBoxStatuses count %A" (allBoxStatuses.Count())
+        allBoxStatuses.Upsert boxStatuses |> ignore
         Ok()
 
     member __.UpdateBoxStatuses(boxStatuses: BoxStatuses) =
@@ -44,7 +49,7 @@ type Storage () =
 
     member __.GetAllBoxStatuses() =
         printfn "In GetAllBoxStatuses()"
-        printfn "what does it say about alBoxStatuses %A" allBoxStatuses
+        printfn "what does it say about allBoxStatuses %A" allBoxStatuses
         printfn "Length of BoxStatus collection (all boxes, and their status list) %A" (allBoxStatuses.LongCount())
         let t = allBoxStatuses.FindAll()
         printfn "t = %A" t
@@ -82,6 +87,7 @@ type Storage () =
 
 let storage = Storage()
 printfn "Boxes count %A" (storage.GetBoxes().Length)
+printfn "AllBoxStatuses count %A" (storage.GetAllBoxStatuses().Length)
 
 if storage.GetBoxes() |> Seq.isEmpty then
     printfn "GetBoxes returns empty so better make some"
@@ -133,11 +139,12 @@ let boxesApi = {
     //     fun n -> async { return storage.GetBoxStatus(n) }
 
     addBoxStatuses =
-        fun boxStatus ->
+        fun boxStatuses ->
+            printfn "In API addBoxStatuses with boxStatuses %A" boxStatuses
             async {
-                match storage.AddBoxStatuses boxStatus with
-                | Ok () -> return boxStatus
-                | Error e -> return failwith e
+                match storage.AddBoxStatuses boxStatuses with
+                | Ok () -> printfn "Ok path"; return boxStatuses
+                | Error e -> printfn "Error path"; return failwith e
             }
     updateBoxStatuses =
         fun boxStatuses ->
