@@ -38,8 +38,6 @@ module Status =
         Date = date
     }
 
-// we'll model the box status recordings as
-// a list of status records against a box id
 [<CLIMutable>]
 type BoxStatuses = {Id:int; StatusList: Status list}
 module BoxStatuses =
@@ -57,27 +55,10 @@ module BoxStatuses =
             Date = status.Date
         } :: priorBoxStatuses.StatusList
     }
-
-
-// [<CLIMutable>]
-// type Todo = { Id: Guid; Description: string }
-
-// module Todo =
-//     let isValid (description: string) =
-//         String.IsNullOrWhiteSpace description |> not
-
-//     let create (description: string) =
-//         { Id = Guid.NewGuid()
-//           Description = description }
-
 module Route =
     let builder typeName methodName =
         printfn "/api/%s/%s" typeName methodName
         sprintf "/api/%s/%s" typeName methodName
-
-// type ITodosApi =
-//     { getTodos: unit -> Async<Todo list>
-//       addTodo: Todo -> Async<Todo> }
 
 type IBoxesApi =
     {

@@ -17,9 +17,6 @@ type Storage () =
     let boxes = database.GetCollection<Box> "boxes"
     let allBoxStatuses = database.GetCollection<BoxStatuses> "allBoxStatuses" // seems like the string name needs to match the left hand side?
 
-
-    // let todos = database.GetCollection<Todo> "todos"
-
     /// Retrieves all boxes
     member _.GetBoxes () =
         let retrievedboxes = boxes.FindAll () |> List.ofSeq
@@ -34,9 +31,6 @@ type Storage () =
         else
             Error "Invalid box"
 
-// todo - OK, I understand what's happened - we have 5 boxStatuses in the collection already
-// so we need to check if one exists and if it doesn't add
-// otherwise update with the statuslist extended with a new item
     member __.AddBoxStatuses(boxStatuses: BoxStatuses) =
         printfn "In Storage.AddBoxStatuses - about to insert boxStatuses %A to allBoxStatuses %A" boxStatuses allBoxStatuses
         printfn "allBoxStatuses count %A" (allBoxStatuses.Count())
@@ -61,30 +55,6 @@ type Storage () =
         printfn "Caller is retrieving box statuses: %A" retrievedBoxStatuses
         retrievedBoxStatuses
 
-    // /// Retrieves all todo items.
-    // member _.GetTodos () =
-    //     todos.FindAll () |> List.ofSeq
-
-    // /// Tries to add a todo item to the collection.
-    // member _.AddTodo (todo:Todo) =
-    //     if Todo.isValid todo.Description then
-    //         todos.Insert todo |> ignore
-    //         Ok ()
-    //     else
-    //         Error "Invalid todo"
-
-// type Storage() =
-//     let todos = ResizeArray<_>()
-
-    // member __.GetTodos() = List.ofSeq todos
-
-    // member __.AddTodo(todo: Todo) =
-    //     if Todo.isValid todo.Description then
-    //         todos.Add todo
-    //         Ok()
-    //     else
-    //         Error "Invalid todo"
-
 let storage = Storage()
 printfn "Boxes count %A" (storage.GetBoxes().Length)
 printfn "AllBoxStatuses count %A" (storage.GetAllBoxStatuses().Length)
@@ -104,20 +74,6 @@ if storage.GetAllBoxStatuses() |> Seq.isEmpty then
     storage.AddBoxStatuses(BoxStatuses.create 3 ) |> ignore
     storage.AddBoxStatuses(BoxStatuses.create 4 ) |> ignore
     storage.AddBoxStatuses(BoxStatuses.create 5 ) |> ignore
-
-// if storage.GetTodos() |> Seq.isEmpty then
-//     storage.AddTodo(Todo.create "Create new SAFE project") |> ignore
-//     storage.AddTodo(Todo.create "Write your app") |> ignore
-//     storage.AddTodo(Todo.create "Ship it !!!") |> ignore
-
-// storage.AddTodo(Todo.create "Create new SAFE project")
-// |> ignore
-
-// storage.AddTodo(Todo.create "Write your app")
-// |> ignore
-
-// storage.AddTodo(Todo.create "Ship it !!!")
-// |> ignore
 
 let boxesApi = {
     getBoxes = fun() -> printfn "In boxesApi getBoxes"; async { return storage.GetBoxes() }
@@ -157,22 +113,10 @@ let boxesApi = {
         fun () -> async { return "dummy"}
     }
 
-// let todosApi =
-//     { getTodos = fun () -> async { return storage.GetTodos() }
-//       addTodo =
-//           fun todo ->
-//               async {
-//                   match storage.AddTodo todo with
-//                   | Ok () -> return todo
-//                   | Error e -> return failwith e
-//               }
-//     }
-
 let webApp =
     Remoting.createApi ()
     |> Remoting.withRouteBuilder Route.builder
     |> Remoting.fromValue boxesApi
-    // |> Remoting.fromValue todosApi
     |> Remoting.buildHttpHandler
 
 let app =
