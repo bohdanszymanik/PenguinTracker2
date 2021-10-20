@@ -51,6 +51,8 @@ Finally, there are `Bundle` and `Azure` targets that you can use to package your
 dotnet run -- Bundle
 dotnet run -- Azure
 ```
+## Testing the API
+I use Huachao's [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) for VS Code and you'll find a tests.http with sample queries in the root of the solution.
 
 ## SAFE Stack Documentation
 
