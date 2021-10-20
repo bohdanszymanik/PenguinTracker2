@@ -33,7 +33,7 @@ type Storage () =
 
     member __.AddBoxStatuses(boxStatuses: BoxStatuses) =
         printfn "In Storage.AddBoxStatuses - about to insert boxStatuses %A to allBoxStatuses %A" boxStatuses allBoxStatuses
-        printfn "allBoxStatuses count %A" (allBoxStatuses.Count())
+        // weird thing here - litedb upsert returns bool here but in litedb source it returns int count of updates
         allBoxStatuses.Upsert boxStatuses |> ignore
         Ok()
 
@@ -43,10 +43,7 @@ type Storage () =
 
     member __.GetAllBoxStatuses() =
         printfn "In GetAllBoxStatuses()"
-        printfn "what does it say about allBoxStatuses %A" allBoxStatuses
-        printfn "Length of BoxStatus collection (all boxes, and their status list) %A" (allBoxStatuses.LongCount())
         let t = allBoxStatuses.FindAll()
-        printfn "t = %A" t
         t |> List.ofSeq
 
     /// Retrieve Box Statuses
@@ -56,8 +53,8 @@ type Storage () =
         retrievedBoxStatuses
 
 let storage = Storage()
-printfn "Boxes count %A" (storage.GetBoxes().Length)
-printfn "AllBoxStatuses count %A" (storage.GetAllBoxStatuses().Length)
+printfn "On starting up Boxes count %A" (storage.GetBoxes().Length)
+printfn "On starting up AllBoxStatuses count %A" (storage.GetAllBoxStatuses().Length)
 
 if storage.GetBoxes() |> Seq.isEmpty then
     printfn "GetBoxes returns empty so better make some"
@@ -76,7 +73,7 @@ if storage.GetAllBoxStatuses() |> Seq.isEmpty then
     storage.AddBoxStatuses(BoxStatuses.create 5 ) |> ignore
 
 let boxesApi = {
-    getBoxes = fun() -> printfn "In boxesApi getBoxes"; async { return storage.GetBoxes() }
+    getBoxes = fun() -> async { return storage.GetBoxes() }
 
     addBox =
         fun box ->
@@ -91,8 +88,6 @@ let boxesApi = {
 
     getBoxStatuses =
         fun (i:int) -> async { return storage.GetBoxStatuses(i) }
-    //   getBoxStatus =
-    //     fun n -> async { return storage.GetBoxStatus(n) }
 
     addBoxStatuses =
         fun boxStatuses ->

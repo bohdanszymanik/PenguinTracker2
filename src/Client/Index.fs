@@ -1,5 +1,5 @@
 module Index
-// todo - working but I think I need a few validations
+// todo - view results UI
 
 open System
 open Elmish
@@ -81,13 +81,10 @@ let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
         printfn "Prepending status to %A" model.AllBoxStatuses.[i]
         let boxStatuses' = status :: model.AllBoxStatuses.[i]
         let boxStatuses = {Id = i; StatusList = boxStatuses'}
-        printfn "SetSubmit created status %A" status
+        printfn "SetSubmit created status %A and boxStatuses %A" status boxStatuses
         let cmd =
             Cmd.OfAsync.perform boxesApi.addBoxStatuses boxStatuses (fun _ -> GetAllBoxStatuses)
-        printfn "Just constructed cmd for SetSubmit"
         {model with AdultsInput = 0; EggsInput = 0; ChicksInput = 0}, cmd
-
-    // | AddBoxStatus s ->
 
     | GetAllBoxStatuses ->
         model, Cmd.OfAsync.perform boxesApi.getAllBoxStatuses () GotAllBoxStatuses
@@ -97,9 +94,7 @@ let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
         // in the storage we have a list of BoxStatuses
         // but in the ui it's easier to deal with a Map<int, BoxStatuses list> so we need to transform
         let allBoxStatuses' = abs |> List.map (fun i ->  printfn "i %A" i; i.Id, i.StatusList)
-        printfn "allBoxStatuses' %A" allBoxStatuses'
         let allBoxStatuses = allBoxStatuses' |> Map.ofList
-        printfn "allBoxStatuses %A" allBoxStatuses
         {model with AllBoxStatuses = allBoxStatuses}, Cmd.none
 
     | GotBoxStatuses bs ->
@@ -109,7 +104,6 @@ let update (msg: Msg) (model: Model) : Model * Cmd<Msg> =
 
 let LINZBasemap x y z dpr =
     // sprintf "https://stamen-tiles.a.ssl.fastly.net/terrain/%A/%A/%A.png" z x y
-    printfn "z:%A x:%A y:%A" z x y
     printfn "https://basemaps.linz.govt.nz/v1/tiles/aerial/EPSG:3857/%A/%A/%A.webp?api=%s" z x y "c01fdbeerst1kd0r05hkbwa2k6z"
     sprintf "https://basemaps.linz.govt.nz/v1/tiles/aerial/EPSG:3857/%A/%A/%A.webp?api=%s" z x y "c01fdbeerst1kd0r05hkbwa2k6z"
 
@@ -136,6 +130,8 @@ let buildMarker (marker: RLMarker) (model: Model) (dispatch: Msg -> unit) : Reac
                     Bulma.label "Adults"
                     Bulma.control.div [
                       Bulma.input.number [
+                        prop.max 2
+                        prop.min 0
                         prop.placeholder "0"
                         prop.valueOrDefault model.AdultsInput
                         prop.onTextChange (fun i -> (int)i |> (SetAdultsInput >> dispatch ))
@@ -147,6 +143,8 @@ let buildMarker (marker: RLMarker) (model: Model) (dispatch: Msg -> unit) : Reac
                     Bulma.control.div [
                       Bulma.input.number [
                         prop.placeholder "0"
+                        prop.max 3
+                        prop.min 0
                         prop.valueOrDefault model.EggsInput
                         prop.onTextChange (fun i -> (int)i |> (SetEggsInput >> dispatch ))
                       ]
@@ -156,6 +154,8 @@ let buildMarker (marker: RLMarker) (model: Model) (dispatch: Msg -> unit) : Reac
                     Bulma.label "Chicks"
                     Bulma.control.div [
                       Bulma.input.number [
+                        prop.max 3
+                        prop.min 0
                         prop.placeholder "0"
                         prop.valueOrDefault model.ChicksInput
                         prop.onTextChange (fun i -> (int)i |> (SetChicksInput >> dispatch ))
@@ -235,7 +235,7 @@ let view (model: Model) (dispatch: Msg -> unit) =
                         prop.children [
                             Bulma.title [
                                 text.hasTextCentered
-                                prop.text "Nest box data logger"
+                                prop.text "Nest box data logger but different"
                             ]
 
                             RL.map [

@@ -13,3 +13,50 @@ GET http://localhost:8080/api/IBoxesApi/getBoxes HTTP/1.1
 ###
 GET http://localhost:8080/api/IBoxesApi/getAllBoxStatuses HTTP/1.1
 
+###
+POST http://localhost:8080/api/IBoxesApi/addBoxStatuses HTTP/1.1
+Host: localhost:8080
+Connection: keep-alive
+Content-Length: 181
+sec-ch-ua: "Chromium";v="94", "Google Chrome";v="94", ";Not A Brand";v="99"
+Content-Type: application/json; charset=UTF-8
+x-remoting-proxy: true
+sec-ch-ua-mobile: ?0
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.71 Safari/537.36
+sec-ch-ua-platform: "Windows"
+Accept: */*
+Origin: http://localhost:8080
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: cors
+Sec-Fetch-Dest: empty
+Referer: http://localhost:8080/?
+Accept-Language: en-US,en;q=0.9
+
+[{"Id": 3, "StatusList": [{"Adults": 0, "Eggs": 0, "Chicks": 2, "Date": "2021-10-12T20:49:01.542+13:00"}, {"Adults": 0, "Eggs": 0, "Chicks": 1, "Date": "2021-10-12T07:41:01.000"}]}]
+
+
+###
+POST http://localhost:8080/api/IBoxesApi/addBoxStatuses HTTP/1.1
+Content-Type: application/json
+
+[{
+    "Id": 5,
+    "StatusList": [{"Adults": 2, "Eggs": 0, "Chicks": 0, "Date": "2021-10-18T20:24:31.688+13:00"}]
+}]
+
+
+###
+POST http://localhost:8080/api/IBoxesApi/addBoxStatuses HTTP/1.1
+Content-Type: application/json
+
+{
+    "Id": 3,
+    "StatusList": [
+      {
+        "Adults": 0,
+        "Eggs": 0,
+        "Chicks": 2,
+        "Date": "2021-10-16T07:42:41.0000000"
+      }
+    ]
+}

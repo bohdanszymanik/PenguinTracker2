@@ -1,6 +1,16 @@
-# SAFE Template
+# Penguin Tracker example built using the SAFE Template
 
-This template can be used to generate a full-stack web application using the [SAFE Stack](https://safe-stack.github.io/). It was created using the dotnet [SAFE Template](https://safe-stack.github.io/docs/template-overview/). If you want to learn more about the template why not start with the [quick start](https://safe-stack.github.io/docs/quickstart/) guide?
+This application is a full stack web app using F# server and client based on the [SAFE Stack](https://safe-stack.github.io/) template and technologies.
+
+## What does it do?
+Penguin tracker is used to record nest box observations being the number of adults,
+the number of eggs, and the number of chicks.
+
+The trick here is to provide a form embedded in a map so that it's possible
+to drill down to a small area to find the nest box, then to enter data by
+clicking on the nest box pin.
+
+**NOTE: None of the pins included in this version of the code point to real nest box locations**. This is just a demonstration version!
 
 ## Install pre-requisites
 
